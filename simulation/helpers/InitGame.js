@@ -17,6 +17,44 @@ function PreInitGame()
 		let cmpTechnologyManager = QueryPlayerIDInterface(i, IID_TechnologyManager);
 		if (cmpTechnologyManager)
 			cmpTechnologyManager.UpdateAutoResearch();
+
+		cmpTechnologyManager.UpdateAutoResearch();
+
+		const civ = QueryPlayerIDInterface(i, IID_Identity).GetCiv();
+		let cmpTemplateManager = Engine.QueryInterface(SYSTEM_ENTITY, IID_TemplateManager);
+
+		// The upgrades from all these will be researched
+		const structure = ["storehouse", "farmstead", "house"];
+		let research10adTechs = [];
+
+		for (let s = 0; s < structure.length; s++)
+			research10adTechs.push(...cmpTemplateManager.GetTemplateWithoutValidation("structures/" + civ + "/" + structure[s]).Researcher.Technologies._string.split(" "));
+
+		for (let tech of research10adTechs)
+		{
+			const template = TechnologyTemplates.Get(tech);
+
+			// Some civs do not get the same upgrades. Requirements are specified
+			// in the templates
+			let tReq = template.requirements.all;
+			let tAny = [];
+
+			if (tReq) {
+				if (tReq.some(r => {
+					if (r.any)
+						tAny = r.any
+					if (r.civ)
+						return r.civ != civ;
+					return r.notciv === civ;
+				})) continue;
+				if (tAny) {
+					if (tAny.some(r => {
+						return r.civ != civ;
+					})) continue;
+				}
+			}
+			cmpTechnologyManager.ResearchTechnology(tech);
+		}
 	}
 
 	// Explore the map inside the players' territory borders
